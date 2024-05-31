@@ -45,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.16"
+    plugin_version = "0.0.17"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -230,7 +230,7 @@ class Jackett(_PluginBase):
                                   url=site["site_link"],
                                   domain=domain,
                                   cookie="",
-                                  rss=domain + f"api?apikey={self._api_key}&t=search&q=",
+                                  rss=domain,
                                   public=1 if indexer.get("public") else 0)
             if indexer:
                 EventManager().send_event(EventType.SiteUpdated, {
@@ -279,7 +279,7 @@ class Jackett(_PluginBase):
                     "id": f'{v["id"]}-jackett',
                     "name": f'{v["name"]} (Jackett)',
                     "site_link": f'{v["site_link"]}',
-                    "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
+                    "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/api?apikey={self._api_key}&t=search&q={{keyword}}',
                     "public": True if v["type"] == "public" else False,
                     "proxy": True,
                     "result_num": 100,
