@@ -2,8 +2,12 @@ from datetime import datetime, timedelta
 from threading import Event
 from typing import Any, Dict, List, Tuple
 
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
 import pytz
 import requests
+from app import schemas
 from app.core.config import settings
 from app.helper.sites import SitesHelper
 from app.log import logger
@@ -12,6 +16,12 @@ from app.utils.http import RequestUtils
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from app.db import get_db
+from app.db.models.site import Site
+from app.utils.string import StringUtils
+
+from app.schemas.types import EventType
+from app.core.event import EventManager
 from .utils import check_response_is_valid_json
 
 
@@ -25,7 +35,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.7"
+    plugin_version = "0.0.8"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -112,13 +122,35 @@ class Jackett(_PluginBase):
             return False
         self._sites = self.get_indexers()
         for site in self._sites:
-            # logger.info(site["site_link"], site)
-            # if not site["site_link"] or site["site_link"] == "":
-            #     continue
-            # domain = site["site_link"].split('//')[-1].split('/')[0]
-            domain = site["domain"].split('//')[-1]
+            logger.info(site["site_link"], site)
+            if not site["site_link"] or site["site_link"] == "":
+                continue
+            domain = site["site_link"].split('//')[-1].split('/')[0]
+            # domain = site["domain"].split('//')[-1]
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
+            db: Session = Depends(get_db)
+            url = site["site_link"]
+            site_info = site
+            if Site.get_by_domain(db, domain):
+                # schemas.Response(success=False, message=f"{domain} 站点己存在")
+                continue
+            site_in: schemas.Site
+            site_in.domain = site["domain"]
+            site_in.url = url
+            _scheme, _netloc = StringUtils.get_url_netloc(site_in.url)
+            site_in.url = f"{_scheme}://{_netloc}/"
+            site_in.name = site_info.get("name")
+            site_in.id = None
+            site_in.public = 1 if site_info.get("public") else 0
+            s = Site(**site_in.dict())
+            s.create(db)
+            # 通知站点更新
+            EventManager().send_event(EventType.SiteUpdated, {
+                "domain": domain
+            })
+
+
         return True if isinstance(self._sites, list) and len(self._sites) > 0 else False
 
     def get_indexers(self):
