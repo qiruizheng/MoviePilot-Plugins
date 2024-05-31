@@ -226,10 +226,10 @@ class Jackett(_PluginBase):
                 status, msg = self.test(domain)
             elif indexer:
                 self.siteoper.add(name=indexer.get("name"),
-                                  url=site["domain"],
+                                  url=site["site_link"],
                                   domain=site["domain"],
                                   cookie="",
-                                  rss="",
+                                  rss=site["domain"] + f"api?apikey={self._api_key}&t=search&q={{keyword}}",
                                   public=1 if indexer.get("public") else 0)
             if indexer:
                 EventManager().send_event(EventType.SiteUpdated, {
@@ -283,14 +283,14 @@ class Jackett(_PluginBase):
                     "proxy": True,
                     "result_num": 100,
                     "timeout": 30,
-                    "search": {
-                        "paths": [
-                            {
-                                "path": f"api?apikey={self._api_key}&t=search&q={{keyword}}",
-                                "method": "get",
-                            }
-                        ]
-                    },
+                    # "search": {
+                    #     "paths": [
+                    #         {
+                    #             "path": f"api?apikey={self._api_key}&t=search&q={{keyword}}",
+                    #             "method": "get",
+                    #         }
+                    #     ]
+                    # },
                     "torrents": {
                         "list": {"selector": "item"},
                         "fields": {
