@@ -16,6 +16,16 @@ from app.utils.http import RequestUtils
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from app.db.site_oper import SiteOper
+from app.utils.string import StringUtils
+from app.db.models.site import Site
+from app.db.sitestatistic_oper import SiteStatisticOper
+from app.helper.browser import PlaywrightHelper
+from app.utils.site import SiteUtils
+from app.helper.cloudflare import under_challenge
+from app.core.event import eventmanager, Event, EventManager
+from app.schemas.types import EventType
+
 # from app.db import get_db
 # from app.db.models.site import Site
 # from app.utils.string import StringUtils
@@ -35,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.9"
+    plugin_version = "0.0.10"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -71,6 +81,8 @@ class Jackett(_PluginBase):
             self._password = str(config.get("password"))
             self._cron = str(config.get("cron"))
             self._run_once = bool(config.get("run_once"))
+            self.siteoper = SiteOper()
+            self.sitestatistic = SiteStatisticOper()
 
         if self._enabled:
             logger.info("Jackett 插件初始化完成")
@@ -113,6 +125,81 @@ class Jackett(_PluginBase):
             }
         )
 
+    def test(self, url: str) -> Tuple[bool, str]:
+        """
+        测试站点是否可用
+        :param url: 站点域名
+        :return: (是否可用, 错误信息)
+        """
+        # 检查域名是否可用
+        domain = StringUtils.get_url_domain(url)
+        site_info = self.siteoper.get_by_domain(domain)
+        if not site_info:
+            return False, f"站点【{url}】不存在"
+
+        # 模拟登录
+        try:
+            # 开始记时
+            start_time = datetime.now()
+            # 通用站点测试
+            state, message = self.__test(site_info)
+            # 统计
+            seconds = (datetime.now() - start_time).seconds
+            if state:
+                self.sitestatistic.success(domain=domain, seconds=seconds)
+            else:
+                self.sitestatistic.fail(domain)
+            return state, message
+        except Exception as e:
+            return False, f"{str(e)}！"
+        
+        
+    @staticmethod
+    def __test(site_info: Site) -> Tuple[bool, str]:
+        """
+        通用站点测试
+        """
+        site_url = site_info.url
+        site_cookie = site_info.cookie
+        ua = site_info.ua or settings.USER_AGENT
+        render = site_info.render
+        public = site_info.public
+        proxies = settings.PROXY if site_info.proxy else None
+        proxy_server = settings.PROXY_SERVER if site_info.proxy else None
+
+        # 访问链接
+        if render:
+            page_source = PlaywrightHelper().get_page_source(url=site_url,
+                                                             cookies=site_cookie,
+                                                             ua=ua,
+                                                             proxies=proxy_server)
+            if not public and not SiteUtils.is_logged_in(page_source):
+                if under_challenge(page_source):
+                    return False, f"无法通过Cloudflare！"
+                return False, f"仿真登录失败，Cookie已失效！"
+        else:
+            res = RequestUtils(cookies=site_cookie,
+                               ua=ua,
+                               proxies=proxies
+                               ).get_res(url=site_url)
+            # 判断登录状态
+            if res and res.status_code in [200, 500, 403]:
+                if not public and not SiteUtils.is_logged_in(res.text):
+                    if under_challenge(res.text):
+                        msg = "站点被Cloudflare防护，请打开站点浏览器仿真"
+                    elif res.status_code == 200:
+                        msg = "Cookie已失效"
+                    else:
+                        msg = f"状态码：{res.status_code}"
+                    return False, f"{msg}！"
+                elif public and res.status_code != 200:
+                    return False, f"状态码：{res.status_code}！"
+            elif res is not None:
+                return False, f"状态码：{res.status_code}！"
+            else:
+                return False, f"无法打开网站！"
+        return True, "连接成功"
+        
     def get_status(self):
         """
         检查连通性
@@ -149,6 +236,22 @@ class Jackett(_PluginBase):
             # EventManager().send_event(EventType.SiteUpdated, {
             #     "domain": domain
             # })
+            indexer = self._sites_helper.get_indexer(domain)
+            site_info = self.siteoper.get_by_domain(domain)
+            if site_info:
+                # 站点已存在，检查站点连通性
+                status, msg = self.test(domain)
+            elif indexer:
+                self.siteoper.add(name=indexer.get("name"),
+                                  url=site["site_link"],
+                                  domain=site["domain"],
+                                  cookie="",
+                                  rss="",
+                                  public=1 if indexer.get("public") else 0)
+            if indexer:
+                EventManager().send_event(EventType.SiteUpdated, {
+                    "domain": domain,
+                })
 
 
         return True if isinstance(self._sites, list) and len(self._sites) > 0 else False
