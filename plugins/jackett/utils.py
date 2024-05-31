@@ -1,6 +1,7 @@
 import json
 
 from requests import Response
+from app.log import logger
 
 
 class IndexerConf:
@@ -28,6 +29,7 @@ class IndexerConf:
         self.siteid = siteid
         # 站点链接
         self.site_link = datas.get("site_link")
+        logger.info(self.site_link)
         # 名称
         self.name = datas.get("name") if not name else name
         # 是否内置站点
