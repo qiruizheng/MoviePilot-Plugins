@@ -25,7 +25,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.1"
+    plugin_version = "0.0.2"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -112,8 +112,11 @@ class Jackett(_PluginBase):
             return False
         self._sites = self.get_indexers()
         for site in self._sites:
-            logger.info((site["domain"], site))
-            self._sites_helper.add_indexer(site["domain"], site)
+            if not site["site_link"] or site["site_link"] == "":
+                continue
+            domain = site["site_link"].split('//')[-1].split('/')[0]
+            logger.info((domain, site))
+            self._sites_helper.add_indexer(domain, site)
         return True if isinstance(self._sites, list) and len(self._sites) > 0 else False
 
     def get_indexers(self):
