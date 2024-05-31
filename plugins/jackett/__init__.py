@@ -45,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.15"
+    plugin_version = "0.0.16"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -215,8 +215,9 @@ class Jackett(_PluginBase):
             logger.info(site["site_link"], site)
             if not site["site_link"] or site["site_link"] == "":
                 continue
-            domain = site["site_link"].split('//')[-1].split('/')[0]
+            # domain = site["site_link"].split('//')[-1].split('/')[0]
             # domain = site["domain"].split('//')[-1]
+            domain = site["domain"]
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
             indexer = self._sites_helper.get_indexer(domain)
@@ -227,9 +228,9 @@ class Jackett(_PluginBase):
             elif indexer:
                 self.siteoper.add(name=indexer.get("name"),
                                   url=site["site_link"],
-                                  domain=site["domain"],
+                                  domain=domain,
                                   cookie="",
-                                  rss=site["domain"] + f"api?apikey={self._api_key}&t=search&q={{keyword}}",
+                                  rss=domain + f"api?apikey={self._api_key}&t=search&q=",
                                   public=1 if indexer.get("public") else 0)
             if indexer:
                 EventManager().send_event(EventType.SiteUpdated, {

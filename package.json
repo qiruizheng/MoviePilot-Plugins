@@ -2,12 +2,13 @@
     "Jackett": {
         "name": "Jackett 索引器",
         "description": "添加 Jackett 索引器",
-        "version": "0.0.15",
+        "version": "0.0.16",
         "icon": "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png",
         "color": "#000000",
         "author": "junyuyuan",
         "level": 1,
         "history": {
+            "v0.0.16": "domain测试",
             "v0.0.15": "恢复Search",
             "v0.0.14": "去除Jackett生成的Search",
             "v0.0.13": "修改站点URL为Domain",
