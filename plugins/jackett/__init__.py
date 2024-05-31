@@ -45,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.11"
+    plugin_version = "0.0.12"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -86,8 +86,8 @@ class Jackett(_PluginBase):
 
         if self._enabled:
             logger.info("Jackett 插件初始化完成")
-            logger.info("打印站点列表")
-            logger.info(self.siteoper.list())
+            # logger.info("打印站点列表")
+            # logger.info(self.siteoper.list())
 
             if self._run_once:
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -207,6 +207,18 @@ class Jackett(_PluginBase):
         检查连通性
         :return: True、False
         """
+
+        def __indexer_domain(inx: dict, sub_domain: str) -> str:
+            """
+            根据主域名获取索引器地址
+            """
+            if StringUtils.get_url_domain(inx.get("domain")) == sub_domain:
+                return inx.get("domain")
+            for ext_d in inx.get("ext_domains"):
+                if StringUtils.get_url_domain(ext_d) == sub_domain:
+                    return ext_d
+            return sub_domain
+
         if not self._api_key or not self._host:
             return False
         self._sites = self.get_indexers()
@@ -218,34 +230,15 @@ class Jackett(_PluginBase):
             # domain = site["domain"].split('//')[-1]
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
-            # db: Session = Depends(get_db)
-            # url = site["site_link"]
-            # site_info = site
-            # if Site.get_by_domain(db, domain):
-            #     # schemas.Response(success=False, message=f"{domain} 站点己存在")
-            #     continue
-            # site_in: schemas.Site
-            # site_in.domain = site["domain"]
-            # site_in.url = url
-            # _scheme, _netloc = StringUtils.get_url_netloc(site_in.url)
-            # site_in.url = f"{_scheme}://{_netloc}/"
-            # site_in.name = site_info.get("name")
-            # site_in.id = None
-            # site_in.public = 1 if site_info.get("public") else 0
-            # s = Site(**site_in.dict())
-            # s.create(db)
-            # # 通知站点更新
-            # EventManager().send_event(EventType.SiteUpdated, {
-            #     "domain": domain
-            # })
             indexer = self._sites_helper.get_indexer(domain)
             site_info = self.siteoper.get_by_domain(domain)
             if site_info:
                 # 站点已存在，检查站点连通性
                 status, msg = self.test(domain)
             elif indexer:
+                domain_url = __indexer_domain(inx=indexer, sub_domain=site["domain"])
                 self.siteoper.add(name=indexer.get("name"),
-                                  url=site["site_link"],
+                                  url=domain_url,
                                   domain=site["domain"],
                                   cookie="",
                                   rss="",
