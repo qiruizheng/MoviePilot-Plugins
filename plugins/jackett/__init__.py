@@ -154,6 +154,7 @@ class Jackett(_PluginBase):
                 {
                     "id": f'{v["id"]}-jackett',
                     "name": f'{v["name"]} (Jackett)',
+                    "site_link": f'{v["site_link"]}',
                     "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
                     "public": True if v["type"] == "public" else False,
                     "proxy": True,
