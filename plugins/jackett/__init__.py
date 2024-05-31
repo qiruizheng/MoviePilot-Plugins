@@ -45,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.12"
+    plugin_version = "0.0.13"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -208,17 +208,6 @@ class Jackett(_PluginBase):
         :return: True、False
         """
 
-        def __indexer_domain(inx: dict, sub_domain: str) -> str:
-            """
-            根据主域名获取索引器地址
-            """
-            if StringUtils.get_url_domain(inx.get("domain")) == sub_domain:
-                return inx.get("domain")
-            for ext_d in inx.get("ext_domains"):
-                if StringUtils.get_url_domain(ext_d) == sub_domain:
-                    return ext_d
-            return sub_domain
-
         if not self._api_key or not self._host:
             return False
         self._sites = self.get_indexers()
@@ -236,9 +225,8 @@ class Jackett(_PluginBase):
                 # 站点已存在，检查站点连通性
                 status, msg = self.test(domain)
             elif indexer:
-                domain_url = __indexer_domain(inx=indexer, sub_domain=site["domain"])
                 self.siteoper.add(name=indexer.get("name"),
-                                  url=domain_url,
+                                  url=site["domain"],
                                   domain=site["domain"],
                                   cookie="",
                                   rss="",
