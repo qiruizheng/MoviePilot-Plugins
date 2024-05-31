@@ -2,12 +2,13 @@
     "Jackett": {
         "name": "Jackett 索引器",
         "description": "添加 Jackett 索引器",
-        "version": "0.0.10",
+        "version": "0.0.11",
         "icon": "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png",
         "color": "#000000",
         "author": "junyuyuan",
         "level": 1,
         "history": {
+            "v0.0.11": "打印站点列表",
             "v0.0.10": "再次尝试加入站点添加",
             "v0.0.9": "尝试加入站点添加失败，还原代码",
             "v0.0.8": "尝试加入站点添加",

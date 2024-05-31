@@ -45,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.10"
+    plugin_version = "0.0.11"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -86,6 +86,8 @@ class Jackett(_PluginBase):
 
         if self._enabled:
             logger.info("Jackett 插件初始化完成")
+            logger.info("打印站点列表")
+            logger.info(self.siteoper.list())
 
             if self._run_once:
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
