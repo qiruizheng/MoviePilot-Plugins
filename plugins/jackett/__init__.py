@@ -45,7 +45,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.13"
+    plugin_version = "0.0.15"
     # 插件作者
     plugin_author = "Junyuyuan"
     # 作者主页
@@ -283,14 +283,14 @@ class Jackett(_PluginBase):
                     "proxy": True,
                     "result_num": 100,
                     "timeout": 30,
-                    # "search": {
-                    #     "paths": [
-                    #         {
-                    #             "path": f"api?apikey={self._api_key}&t=search&q={{keyword}}",
-                    #             "method": "get",
-                    #         }
-                    #     ]
-                    # },
+                    "search": {
+                        "paths": [
+                            {
+                                "path": "",
+                                "method": "get",
+                            }
+                        ]
+                    },
                     "torrents": {
                         "list": {"selector": "item"},
                         "fields": {
