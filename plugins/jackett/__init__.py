@@ -36,7 +36,7 @@ class Jackett(_PluginBase):
     # 加载顺序
     plugin_order = 1
     # 可使用的用户级别
-    auth_level = 2
+    auth_level = 3
 
     # 私有属性
     _event = Event()
