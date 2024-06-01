@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.23"
+    plugin_version = "0.0.24"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -119,7 +119,7 @@ class Jackett(_PluginBase):
             self._sites_helper.add_indexer(domain, site)
             self._siteoper.add(name=site.get("name"),
                                url=site["site_link"],
-                               domain=site.get("domain"),
+                               domain=site.get("site_domain"),
                                cookie="",
                                rss="",
                                public=1 if site.get("public") else 0)
@@ -164,7 +164,8 @@ class Jackett(_PluginBase):
                     "id": f'{v["id"]}-jackett',
                     "name": f'{v["name"]} (Jackett)',
                     "site_link": f'{v["site_link"]}',
-                    "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
+                    "domain": f'{v["site_link"]}',
+                    "site_domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
                     "public": True if v["type"] == "public" else False,
                     "proxy": True,
                     "result_num": 100,
