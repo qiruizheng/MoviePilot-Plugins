@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.24"
+    plugin_version = "0.0.25"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -114,12 +114,11 @@ class Jackett(_PluginBase):
             return False
         self._sites = self.get_indexers()
         for site in self._sites:
-            domain = site["site_link"].split('//')[-1].split('/')[0]
-            logger.info((domain, site))
-            self._sites_helper.add_indexer(domain, site)
+            logger.info((site["domain"], site))
+            self._sites_helper.add_indexer(site["domain"], site)
             self._siteoper.add(name=site.get("name"),
-                               url=site["site_link"],
-                               domain=site.get("site_domain"),
+                               url=site["domain"],
+                               domain=site["domain"],
                                cookie="",
                                rss="",
                                public=1 if site.get("public") else 0)
@@ -161,11 +160,9 @@ class Jackett(_PluginBase):
             indexers = [
                 # IndexerConf(
                 {
-                    "id": f'{v["id"]}-jackett',
-                    "name": f'{v["name"]} (Jackett)',
-                    "site_link": f'{v["site_link"]}',
-                    "domain": f'{v["site_link"]}',
-                    "site_domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
+                    "id": f'jackett',
+                    "name": f'Jackett',
+                    "domain": f'{self._host}/',
                     "public": True if v["type"] == "public" else False,
                     "proxy": True,
                     "result_num": 100,
@@ -173,7 +170,7 @@ class Jackett(_PluginBase):
                     "search": {
                         "paths": [
                             {
-                                "path": f"api?apikey={self._api_key}&t=search&q={{keyword}}",
+                                "path": f"api/v2.0/indexers/all/results/torznab/api?apikey={self._api_key}&t=search&q={{keyword}}",
                                 "method": "get",
                             }
                         ]
@@ -206,7 +203,7 @@ class Jackett(_PluginBase):
                     },
                 }
                 # )
-                for v in ret.json()
+                # for v in ret.json()
             ]
             return indexers
         except Exception as e:
