@@ -11,6 +11,7 @@ from app.plugins import _PluginBase
 from app.utils.http import RequestUtils
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from app.db.site_oper import SiteOper
 
 from .utils import check_response_is_valid_json
 
@@ -25,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.18"
+    plugin_version = "0.0.19"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -48,6 +49,7 @@ class Jackett(_PluginBase):
     _cron = None
     _run_once = False
     _sites = None
+    _siteoper = SiteOper()
 
     def init_plugin(self, config: dict | None = None):
         if config:
@@ -112,13 +114,16 @@ class Jackett(_PluginBase):
             return False
         self._sites = self.get_indexers()
         for site in self._sites:
-            # logger.info(site["site_link"], site)
-            # if not site["site_link"] or site["site_link"] == "":
-            #     continue
-            # domain = site["site_link"].split('//')[-1].split('/')[0]
             domain = site["domain"].split('//')[-1]
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
+            ## TODO 添加站点
+            self._siteoper.add(name=site.get("name"),
+                               url=domain,
+                               domain=site.get("domain"),
+                               cookie="",
+                               rss="",
+                               public=1 if site.get("public") else 0)
         return True if isinstance(self._sites, list) and len(self._sites) > 0 else False
 
     def get_indexers(self):

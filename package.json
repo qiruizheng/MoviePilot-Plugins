@@ -2,12 +2,13 @@
     "Jackett": {
         "name": "Jackett 索引器",
         "description": "添加 Jackett 索引器，插件开发中",
-        "version": "0.0.18",
+        "version": "0.0.19",
         "icon": "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png",
         "color": "#000000",
         "author": "junyuyuan,Ray",
         "level": 2,
         "history": {
+            "v0.0.19": "测试站点添加",
             "v0.0.18": "还原代码到0.0.7版本，提升用户等级，插件开发中",
             "v0.0.17": "domain测试1",
             "v0.0.16": "domain测试",
