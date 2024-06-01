@@ -2,12 +2,8 @@ from datetime import datetime, timedelta
 from threading import Event
 from typing import Any, Dict, List, Tuple
 
-# from fastapi import Depends
-# from sqlalchemy.orm import Session
-
 import pytz
 import requests
-# from app import schemas
 from app.core.config import settings
 from app.helper.sites import SitesHelper
 from app.log import logger
@@ -16,22 +12,6 @@ from app.utils.http import RequestUtils
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.db.site_oper import SiteOper
-from app.utils.string import StringUtils
-from app.db.models.site import Site
-from app.db.sitestatistic_oper import SiteStatisticOper
-from app.helper.browser import PlaywrightHelper
-from app.utils.site import SiteUtils
-from app.helper.cloudflare import under_challenge
-from app.core.event import eventmanager, Event, EventManager
-from app.schemas.types import EventType
-
-# from app.db import get_db
-# from app.db.models.site import Site
-# from app.utils.string import StringUtils
-
-# from app.schemas.types import EventType
-# from app.core.event import EventManager
 from .utils import check_response_is_valid_json
 
 
@@ -39,15 +19,15 @@ class Jackett(_PluginBase):
     # 插件名称
     plugin_name = "Jackett 索引器"
     # 插件描述
-    plugin_desc = "支持检索 Jackett 站点资源"
+    plugin_desc = "支持检索 Jackett 站点资源，插件开发中，请勿下载使用"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png"
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.17"
+    plugin_version = "0.0.18"
     # 插件作者
-    plugin_author = "Junyuyuan"
+    plugin_author = "Junyuyuan,Ray"
     # 作者主页
     author_url = "https://github.com/junyuyuan"
     # 插件配置项ID前缀
@@ -55,7 +35,7 @@ class Jackett(_PluginBase):
     # 加载顺序
     plugin_order = 1
     # 可使用的用户级别
-    auth_level = 1
+    auth_level = 2
 
     # 私有属性
     _event = Event()
@@ -81,13 +61,9 @@ class Jackett(_PluginBase):
             self._password = str(config.get("password"))
             self._cron = str(config.get("cron"))
             self._run_once = bool(config.get("run_once"))
-            self.siteoper = SiteOper()
-            self.sitestatistic = SiteStatisticOper()
 
         if self._enabled:
             logger.info("Jackett 插件初始化完成")
-            # logger.info("打印站点列表")
-            # logger.info(self.siteoper.list())
 
             if self._run_once:
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -127,117 +103,22 @@ class Jackett(_PluginBase):
             }
         )
 
-    def test(self, url: str) -> Tuple[bool, str]:
-        """
-        测试站点是否可用
-        :param url: 站点域名
-        :return: (是否可用, 错误信息)
-        """
-        # 检查域名是否可用
-        domain = StringUtils.get_url_domain(url)
-        site_info = self.siteoper.get_by_domain(domain)
-        if not site_info:
-            return False, f"站点【{url}】不存在"
-
-        # 模拟登录
-        try:
-            # 开始记时
-            start_time = datetime.now()
-            # 通用站点测试
-            state, message = self.__test(site_info)
-            # 统计
-            seconds = (datetime.now() - start_time).seconds
-            if state:
-                self.sitestatistic.success(domain=domain, seconds=seconds)
-            else:
-                self.sitestatistic.fail(domain)
-            return state, message
-        except Exception as e:
-            return False, f"{str(e)}！"
-        
-        
-    @staticmethod
-    def __test(site_info: Site) -> Tuple[bool, str]:
-        """
-        通用站点测试
-        """
-        site_url = site_info.url
-        site_cookie = site_info.cookie
-        ua = site_info.ua or settings.USER_AGENT
-        render = site_info.render
-        public = site_info.public
-        proxies = settings.PROXY if site_info.proxy else None
-        proxy_server = settings.PROXY_SERVER if site_info.proxy else None
-
-        # 访问链接
-        if render:
-            page_source = PlaywrightHelper().get_page_source(url=site_url,
-                                                             cookies=site_cookie,
-                                                             ua=ua,
-                                                             proxies=proxy_server)
-            if not public and not SiteUtils.is_logged_in(page_source):
-                if under_challenge(page_source):
-                    return False, f"无法通过Cloudflare！"
-                return False, f"仿真登录失败，Cookie已失效！"
-        else:
-            res = RequestUtils(cookies=site_cookie,
-                               ua=ua,
-                               proxies=proxies
-                               ).get_res(url=site_url)
-            # 判断登录状态
-            if res and res.status_code in [200, 500, 403]:
-                if not public and not SiteUtils.is_logged_in(res.text):
-                    if under_challenge(res.text):
-                        msg = "站点被Cloudflare防护，请打开站点浏览器仿真"
-                    elif res.status_code == 200:
-                        msg = "Cookie已失效"
-                    else:
-                        msg = f"状态码：{res.status_code}"
-                    return False, f"{msg}！"
-                elif public and res.status_code != 200:
-                    return False, f"状态码：{res.status_code}！"
-            elif res is not None:
-                return False, f"状态码：{res.status_code}！"
-            else:
-                return False, f"无法打开网站！"
-        return True, "连接成功"
-        
     def get_status(self):
         """
         检查连通性
         :return: True、False
         """
-
         if not self._api_key or not self._host:
             return False
         self._sites = self.get_indexers()
         for site in self._sites:
-            logger.info(site["site_link"], site)
-            if not site["site_link"] or site["site_link"] == "":
-                continue
+            # logger.info(site["site_link"], site)
+            # if not site["site_link"] or site["site_link"] == "":
+            #     continue
             # domain = site["site_link"].split('//')[-1].split('/')[0]
-            # domain = site["domain"].split('//')[-1]
-            domain = site["domain"]
+            domain = site["domain"].split('//')[-1]
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
-            indexer = self._sites_helper.get_indexer(domain)
-            site_info = self.siteoper.get_by_domain(domain)
-            if site_info:
-                # 站点已存在，检查站点连通性
-                status, msg = self.test(domain)
-            elif indexer:
-                self.siteoper.add(name=indexer.get("name"),
-                                  url=site["site_link"],
-                                  domain=domain,
-                                  cookie="",
-                                  rss=domain,
-                                  public=1 if indexer.get("public") else 0)
-            if indexer:
-                EventManager().send_event(EventType.SiteUpdated, {
-                    "domain": domain,
-                })
-
-
         return True if isinstance(self._sites, list) and len(self._sites) > 0 else False
 
     def get_indexers(self):
@@ -279,7 +160,7 @@ class Jackett(_PluginBase):
                     "id": f'{v["id"]}-jackett',
                     "name": f'{v["name"]} (Jackett)',
                     "site_link": f'{v["site_link"]}',
-                    "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/api?apikey={self._api_key}&t=search&q={{keyword}}',
+                    "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
                     "public": True if v["type"] == "public" else False,
                     "proxy": True,
                     "result_num": 100,
@@ -287,7 +168,7 @@ class Jackett(_PluginBase):
                     "search": {
                         "paths": [
                             {
-                                "path": "",
+                                "path": f"api?apikey={self._api_key}&t=search&q={{keyword}}",
                                 "method": "get",
                             }
                         ]
