@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.25"
+    plugin_version = "0.0.26"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -161,9 +161,9 @@ class Jackett(_PluginBase):
                 # IndexerConf(
                 {
                     "id": f'jackett',
-                    "name": f'Jackett',
+                    "name": f'Jackett 聚合',
                     "domain": f'{self._host}/',
-                    "public": True if v["type"] == "public" else False,
+                    "public": True,
                     "proxy": True,
                     "result_num": 100,
                     "timeout": 30,
