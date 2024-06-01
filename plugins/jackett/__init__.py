@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.22"
+    plugin_version = "0.0.20"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -118,8 +118,8 @@ class Jackett(_PluginBase):
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
             self._siteoper.add(name=site.get("name"),
-                               url=site.get("site_link"),
-                               domain=f'{self._host}',
+                               url=site["site_link"],
+                               domain=site.get("domain"),
                                cookie="",
                                rss="",
                                public=1 if site.get("public") else 0)
@@ -172,7 +172,7 @@ class Jackett(_PluginBase):
                     "search": {
                         "paths": [
                             {
-                                "path": f"api/v2.0/indexers/{v["id"]}/results/torznab/api?apikey={self._api_key}&t=search&q={{keyword}}",
+                                "path": f"api?apikey={self._api_key}&t=search&q={{keyword}}",
                                 "method": "get",
                             }
                         ]
