@@ -18,9 +18,9 @@ from .utils import check_response_is_valid_json
 
 class Jackett(_PluginBase):
     # 插件名称
-    plugin_name = "Jackett 索引器"
+    plugin_name = "Jackett 聚合"
     # 插件描述
-    plugin_desc = "支持检索 Jackett 站点资源，插件开发中，请勿下载使用"
+    plugin_desc = "Jackett 聚合索引器，插件开发中"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png"
     # 主题色
