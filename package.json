@@ -2,11 +2,11 @@
     "Jackett": {
         "name": "Jackett 索引器",
         "description": "添加 Jackett 索引器，插件开发中",
-        "version": "0.0.27",
+        "version": "0.0.28",
         "icon": "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png",
         "color": "#000000",
         "author": "junyuyuan,Ray",
-        "level": 3,
+        "level": 2,
         "history": {
         }
     }

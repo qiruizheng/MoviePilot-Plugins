@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.27"
+    plugin_version = "0.0.28"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -36,7 +36,7 @@ class Jackett(_PluginBase):
     # 加载顺序
     plugin_order = 1
     # 可使用的用户级别
-    auth_level = 3
+    auth_level = 2
 
     # 私有属性
     _event = Event()
@@ -119,7 +119,7 @@ class Jackett(_PluginBase):
             self._sites_helper.add_indexer(domain, site)
             self._siteoper.add(name=site.get("name"),
                                url=site["domain"],
-                               domain=site["domain"],
+                               domain=domain,
                                cookie="",
                                rss="",
                                public=1 if site.get("public") else 0)
