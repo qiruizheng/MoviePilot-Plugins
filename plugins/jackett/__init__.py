@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.19"
+    plugin_version = "0.0.20"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -114,12 +114,11 @@ class Jackett(_PluginBase):
             return False
         self._sites = self.get_indexers()
         for site in self._sites:
-            domain = site["domain"].split('//')[-1]
+            domain = site["site_link"].split('//')[-1]
             logger.info((domain, site))
             self._sites_helper.add_indexer(domain, site)
-            ## TODO 添加站点
             self._siteoper.add(name=site.get("name"),
-                               url=domain,
+                               url=site["site_link"],
                                domain=site.get("domain"),
                                cookie="",
                                rss="",
