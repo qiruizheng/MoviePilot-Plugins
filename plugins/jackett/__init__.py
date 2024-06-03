@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.29"
+    plugin_version = "0.0.30"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -178,7 +178,7 @@ class Jackett(_PluginBase):
                         ]
                     },
                     "torrents": {
-                        "list": {"selector": "item"},
+                        "list": {"selector": "channel > item"},
                         "fields": {
                             "id": {
                                 "selector": "link",
