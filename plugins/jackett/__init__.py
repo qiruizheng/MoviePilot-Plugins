@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.31"
+    plugin_version = "0.0.32"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -188,24 +188,22 @@ class Jackett(_PluginBase):
                                 "selector": "comments",
                             },
                             "download": {
-                                "selector": 'torznab:attr[name="magneturl"]',
+                                "selector": 'torznab:attr name="magneturl"',
                                 "attribute": "value",
                             },
                             # "date_added": {"selector": "td:nth-child(5)"},
                             "size": {"selector": "size"},
                             "seeders": {
-                                "selector": 'torznab:attr[name="seeders"]',
+                                "selector": 'torznab:attr name="seeders"',
                                 "attribute": "value",
                             },
                             # "leechers": {"selector": "td:nth-child(7)"},
                             # "grabs": {"selector": "td:nth-child(8)"},
                             "downloadvolumefactor": {
-                                "selector": 'torznab:attr[name="downloadvolumefactor"]',
-                                "attribute": "value",
+                                "selector": 'torznab:attr name="downloadvolumefactor"',
                             },
                             "uploadvolumefactor": {
-                                "selector": 'torznab:attr[name="uploadvolumefactor"]',
-                                "attribute": "value",
+                                "selector": 'torznab:attr name="uploadvolumefactor"',
                             },
                         },
                     },

@@ -2,7 +2,7 @@
     "Jackett": {
         "name": "Jackett 聚合",
         "description": "Jackett 聚合索引器，插件开发中",
-        "version": "0.0.31",
+        "version": "0.0.32",
         "icon": "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png",
         "color": "#000000",
         "author": "junyuyuan,Ray",
