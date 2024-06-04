@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.2.1"
+    plugin_version = "0.2.2"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -189,10 +189,10 @@ class Jackett(_PluginBase):
                             "details": {
                                 "selector": "comments",
                             },
-                            "download": {
-                                "selector": "enclosure",
-                                "attribute": "url",
-                            },
+                            # "download": {
+                            #     "selector": "enclosure",
+                            #     "attribute": "url",
+                            # },
                             "size": {"selector": "size"},
                             "seeders": {
                                 "selector": 'torznab:attr[name="seeders"]',
