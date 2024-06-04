@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.0.37"
+    plugin_version = "0.0.38"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -66,7 +66,8 @@ class Jackett(_PluginBase):
 
         if self._enabled:
             logger.info("Jackett 插件初始化完成")
-
+            # 启动时立即运行一次
+            self._run_once = True
             if self._run_once:
                 self._scheduler = BackgroundScheduler(timezone=settings.TZ)
 
