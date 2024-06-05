@@ -395,8 +395,4 @@ class Jackett(_PluginBase):
                 self._scheduler = None
         except Exception as e:
             logger.error(f"停止插件错误: {str(e)}")
-
-    def search(self, indexer, keyword, page):
-        if not indexer or not indexer:
-            return None
-        logger.info((indexer.name, keyword))
+            
