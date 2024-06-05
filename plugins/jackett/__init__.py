@@ -26,7 +26,7 @@ class Jackett(_PluginBase):
     # 主题色
     plugin_color = "#000000"
     # 插件版本
-    plugin_version = "0.2.3"
+    plugin_version = "0.2.4"
     # 插件作者
     plugin_author = "Junyuyuan,Ray"
     # 作者主页
@@ -395,3 +395,8 @@ class Jackett(_PluginBase):
                 self._scheduler = None
         except Exception as e:
             logger.error(f"停止插件错误: {str(e)}")
+
+    def search(self, indexer, keyword, page):
+        if not indexer or not indexer:
+            return None
+        logger.info((indexer.name, keyword))
