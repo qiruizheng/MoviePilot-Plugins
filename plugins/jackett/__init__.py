@@ -1,110 +1,112 @@
-from datetime import datetime, timedelta
-from threading import Event
-from typing import Any, Dict, List, Tuple
-
-import pytz
 import requests
-from app.core.config import settings
-from app.helper.sites import SitesHelper
-from app.log import logger
-from app.plugins import _PluginBase
-from app.utils.http import RequestUtils
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-from app.db.site_oper import SiteOper
+import xml.dom.minidom
 
-from .utils import check_response_is_valid_json
+from app.utils import RequestUtils
+from app.helper import IndexerConf
+from app.utils import ExceptionUtils, DomUtils
 
+from app.helper import DbHelper
+from app.plugins.modules._base import _IPluginModule
+from config import Config
 
-class Jackett(_PluginBase):
+class Jackett(_IPluginModule):
     # 插件名称
-    plugin_name = "Jackett 聚合"
+    module_name = "Jackett"
     # 插件描述
-    plugin_desc = "Jackett 聚合索引器，插件开发中"
+    module_desc = "让内荐索引器支持检索Jackett站点资源"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/junyuyuan/MoviePilot-Plugins/main/icons/jackett.png"
+    module_icon = "jackett.png"
     # 主题色
-    plugin_color = "#000000"
+    module_color = "#C90425"
     # 插件版本
-    plugin_version = "0.2.4"
+    module_version = "1.1"
     # 插件作者
-    plugin_author = "Junyuyuan,Ray"
+    module_author = "mattoid"
     # 作者主页
-    author_url = "https://github.com/junyuyuan"
+    author_url = "https://github.com/Mattoids"
     # 插件配置项ID前缀
-    plugin_config_prefix = "jackett_"
+    module_config_prefix = "jackett_"
     # 加载顺序
-    plugin_order = 1
+    module_order = 15
     # 可使用的用户级别
-    auth_level = 2
+    auth_level = 1
 
     # 私有属性
-    _event = Event()
-    _sites_helper = SitesHelper()
-    _scheduler = None
-    _enabled = False
+    _enable = False
+    _dbhelper = None
     _host = ""
     _api_key = ""
     _password = ""
-    _cron = None
-    _run_once = False
-    _sites = None
-    _siteoper = SiteOper()
+    _show_more_sites = False
+    _sites = []
 
-    def init_plugin(self, config: dict | None = None):
-        if config:
-            self._enabled = bool(config.get("enabled"))
-            self._api_key = str(config.get("api_key"))
-            self._host = str(config.get("host"))
-            if not self._host.startswith("http"):
-                self._host = "http://" + self._host
-            if self._host.endswith("/"):
-                self._host = self._host.rstrip("/")
-            self._password = str(config.get("password"))
-            self._cron = str(config.get("cron"))
-            self._run_once = bool(config.get("run_once"))
-
-        if self._enabled:
-            logger.info("Jackett 插件初始化完成")
-            # 启动时立即运行一次
-            self._run_once = True
-            if self._run_once:
-                self._scheduler = BackgroundScheduler(timezone=settings.TZ)
-
-                if self._cron:
-                    logger.info(f"索引更新服务启动，周期：{self._cron}")
-                    self._scheduler.add_job(
-                        self.get_status, CronTrigger.from_crontab(self._cron)
-                    )
-
-                if self._run_once:
-                    logger.info("开始获取索引器状态")
-                    self._scheduler.add_job(
-                        self.get_status,
-                        "date",
-                        run_date=datetime.now(tz=pytz.timezone(settings.TZ))
-                        + timedelta(seconds=3),
-                    )
-                    # 关闭一次性开关
-                    self._run_once = False
-                    self._update_config()
-
-                if self._cron or self._run_once:
-                    # 启动服务
-                    self._scheduler.print_jobs()
-                    self._scheduler.start()
-
-    def _update_config(self):
-        self.update_config(
+    @staticmethod
+    def get_fields():
+        return [
+            # 同一板块
             {
-                "enabled": self._enabled,
-                "host": self._host,
-                "api_key": self._api_key,
-                "password": self._password,
-                "cron": self._cron,
-                "run_once": self._run_once,
+                'type': 'div',
+                'content': [
+                    # 同一行
+                    [
+                        {
+                            'title': 'Jackett地址',
+                            'required': "required",
+                            'tooltip': 'Jackett访问地址和端口，如为https需加https://前缀。注意需要先在Jackett中添加indexer，才能正常测试通过和使用',
+                            'type': 'text',
+                            'content': [
+                                {
+                                    'id': 'host',
+                                    'placeholder': 'http://127.0.0.1:9117',
+                                }
+                            ]
+                        },
+                        {
+                            'title': 'Api Key',
+                            'required': "required",
+                            'tooltip': 'Jackett管理界面右上角复制API Key',
+                            'type': 'text',
+                            'content': [
+                                {
+                                    'id': 'api_key',
+                                    'placeholder': '',
+                                }
+                            ]
+                        }
+                    ],
+                    [
+                        {
+                            'title': '密码',
+                            'required': "required",
+                            'tooltip': 'Jackett管理界面中配置的Admin password，如未配置可为空',
+                            'type': 'password',
+                            'content': [
+                                {
+                                    'id': 'password',
+                                    'placeholder': '',
+                                }
+                            ]
+                        }
+                    ],
+                    [
+                        {
+                            'title': '开启内建站点',
+                            'required': "",
+                            'tooltip': '开启后会在内建索引器展示内置的公开站点，不开启则只显示jackett的站点',
+                            'type': 'switch',
+                            'id': 'show_more_sites',
+                        }
+                    ]
+                ]
             }
-        )
+        ]
+
+    # def get_page(self):
+    #     """
+    #     插件的额外页面，返回页面标题和页面内容
+    #     :return: 标题，页面内容，确定按钮响应函数
+    #     """
+    #     return "测试", None, None
 
     def get_status(self):
         """
@@ -114,18 +116,37 @@ class Jackett(_PluginBase):
         if not self._api_key or not self._host:
             return False
         self._sites = self.get_indexers()
-        for site in self._sites:
-            domain = site["domain"].split("//")[-1].split("/")[0]
-            logger.info((domain, site))
-            self._sites_helper.add_indexer(domain, site)
-            self._siteoper.add(name=site.get("name"),
-                               url=site["domain"],
-                               domain=domain,
-                               cookie="",
-                               rss="",
-                               public=1 if site.get("public") else 0,
-                               render=True),
-        return True if isinstance(self._sites, list) and len(self._sites) > 0 else False
+        return True if self._sites else False
+
+    def init_config(self, config=None):
+        self.info(f"初始化配置{config}")
+
+        if not config:
+            return
+
+        self._dbhelper = DbHelper()
+        if config:
+            self._host = config.get("host")
+            self._api_key = config.get("api_key")
+            self._password = config.get("password")
+            self._enable = self.get_status()
+            self.__update_config(showMoreSites=config.get("show_more_sites"))
+
+    def get_state(self):
+        return self._enable
+
+    def stop_service(self):
+        """
+        退出插件
+        """
+        pass
+
+    def __update_config(self, showMoreSites = False):
+        show_more_sites = Config().get_config("laboratory").get('show_more_sites')
+        if show_more_sites != showMoreSites:
+            cfg = Config().get_config()
+            cfg["laboratory"]["show_more_sites"] = showMoreSites
+            Config().save_config(cfg)
 
     def get_indexers(self):
         """
@@ -133,90 +154,29 @@ class Jackett(_PluginBase):
         :return: indexer 信息 [(indexerId, indexerName, url)]
         """
         # 获取Cookie
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "User-Agent": settings.USER_AGENT,
-            "X-Api-Key": self._api_key,
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-        }
         cookie = None
         session = requests.session()
-        res = RequestUtils(headers=headers, session=session).post_res(
-            url=f"{self._host}/UI/Dashboard",
-            data={"password": self._password},
-            params={"password": self._password},
-        )
+        res = RequestUtils(session=session).post_res(url=f"{self._host}/UI/Dashboard", data={"password": self._password},
+                                                     params={"password": self._password})
         if res and session.cookies:
             cookie = session.cookies.get_dict()
         indexer_query_url = f"{self._host}/api/v2.0/indexers?configured=true"
         try:
-            ret = RequestUtils(headers=headers, cookies=cookie).get_res(
-                indexer_query_url
-            )
-            if not ret:
+            ret = RequestUtils(cookies=cookie).get_res(indexer_query_url)
+            if not ret or not ret.json():
                 return []
-            if not check_response_is_valid_json(ret):
-                logger.error("参数设置不正确，请检查所有的参数是否填写正确")
-                return []
-            if not ret.json():
-                return []
-            indexers = [
-                # IndexerConf(
-                {
-                    "id": f'jackett',
-                    "name": f'Jackett 聚合',
-                    "domain": f'{self._host}/',
-                    "public": True,
-                    "proxy": True,
-                    "result_num": 100,
-                    "timeout": 60,
-                    "search": {
-                        "paths": [
-                            {
-                                "path": f"api/v2.0/indexers/all/results/torznab/api?apikey={self._api_key}&t=search&q={{keyword}}",
-                                "method": "get",
-                            }
-                        ]
-                    },
-                    "torrents": {
-                        "list": {"selector": "channel > item"},
-                        "fields": {
-                            "id": {
-                                "selector": "jackettindexer",
-                                "attribute": "id",
-                            },
-                            "title": {"selector": "title"},
-                            "details": {
-                                "selector": "comments",
-                            },
-                            "download": {
-                                "selector": "enclosure",
-                                "attribute": "url",
-                            },
-                            "size": {"selector": "size"},
-                            "seeders": {
-                                "selector": 'torznab:attr[name="seeders"]',
-                                "attribute": "value",
-                            },
-                            "downloadvolumefactor": {
-                                "selector": 'torznab:attr[name="downloadvolumefactor"]',
-                                "attribute": "value",
-                            },
-                            "uploadvolumefactor": {
-                                "selector": 'torznab:attr[name="uploadvolumefactor"]',
-                                "attribute": "value",
-                            },
-                        },
-                    },
-                }
-                # )
-                # for v in ret.json()
-            ]
-            return indexers
-        except Exception as e:
-            logger.error(f"获取索引器失败：{str(e)}")
+            return [IndexerConf({"id": f'{v["id"]}-{self.module_name}',
+                                 "name": f'【{self.module_name}】{v["name"]}',
+                                 "domain": f'{self._host}/api/v2.0/indexers/{v["id"]}/results/torznab/',
+                                 "public": True if v['type'] == 'public' else False,
+                                 "builtin": False,
+                                 "proxy": True,
+                                 "parser": self.module_name})
+                    for v in ret.json()]
+        except Exception as e2:
+            ExceptionUtils.exception_traceback(e2)
             return []
-            
+
     def search(self, indexer,
                keyword,
                page):
@@ -225,183 +185,21 @@ class Jackett(_PluginBase):
         """
         if not indexer or not keyword:
             return None
-        self.info(f"【{self.plugin_name}】开始检索Indexer：{indexer.name} ...")
+        self.info(f"【{self.module_name}】开始检索Indexer：{indexer.name} ...")
         # 特殊符号处理
         api_url = f"{indexer.domain}?apikey={self._api_key}&t=search&q={keyword}"
 
         result_array = self.__parse_torznabxml(api_url)
 
         if len(result_array) == 0:
-            self.warn(f"【{self.plugin_name}】{indexer.name} 未检索到数据")
+            self.warn(f"【{self.module_name}】{indexer.name} 未检索到数据")
             # self.progress.update(ptype='search', text=f"{indexer.name} 未检索到数据")
             return []
         else:
-            self.warn(f"【{self.plugin_name}】{indexer.name} 返回数据：{len(result_array)}")
+            self.warn(f"【{self.module_name}】{indexer.name} 返回数据：{len(result_array)}")
             return result_array
 
-    
-    def get_fake_site(self):
-        pass
-
-    def get_state(self) -> bool:
-        return self._enabled
-
     @staticmethod
-    def get_command() -> List[Dict[str, Any]] | None:
-        pass
-
-    def get_api(self) -> List[Dict[str, Any]] | None:
-        # return [
-        #     {
-        #         "path": "/jackett_fake_site",
-        #         "endpoint": self.get_fake_site,
-        #         "methods": ["GET"],
-        #         "summary": "Jackett 虚假站点",
-        #         "description": "Jackett 虚假站点",
-        #     }
-        # ]
-        pass
-
-    def get_service(self) -> List[Dict[str, Any]] | None:
-        if self._enabled and self._cron:
-            return [
-                {
-                    "id": "Jaclett",
-                    "name": "Jackett 索引更新服务",
-                    "trigger": CronTrigger.from_crontab(self._cron),
-                    "func": self.get_status,
-                    "kwargs": {},
-                }
-            ]
-
-    # 插件配置页面
-    def get_form(self) -> Tuple[List[dict], Dict[str, Any]]:
-        """
-        拼装插件配置页面，需要返回两块数据：1、页面配置；2、数据结构
-        """
-        return (
-            [
-                {
-                    "component": "VForm",
-                    "content": [
-                        {
-                            "component": "VRow",
-                            "content": [
-                                {
-                                    "component": "VCol",
-                                    "content": [
-                                        {
-                                            "component": "VSwitch",
-                                            "props": {
-                                                "model": "enabled",
-                                                "label": "启用插件",
-                                            },
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            "component": "VRow",
-                            "content": [
-                                {
-                                    "component": "VCol",
-                                    "props": {"cols": 12, "md": 6},
-                                    "content": [
-                                        {
-                                            "component": "VTextField",
-                                            "props": {
-                                                "model": "host",
-                                                "label": "Jackett 地址",
-                                                "placeholder": "http://127.0.0.1:9117",
-                                            },
-                                        }
-                                    ],
-                                },
-                                {
-                                    "component": "VCol",
-                                    "props": {"cols": 12, "md": 6},
-                                    "content": [
-                                        {
-                                            "component": "VTextField",
-                                            "props": {
-                                                "model": "api_key",
-                                                "label": "Jackett API Key",
-                                                "placeholder": "",
-                                            },
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            "component": "VRow",
-                            "content": [
-                                {
-                                    "component": "VCol",
-                                    "content": [
-                                        {
-                                            "component": "VTextField",
-                                            "props": {
-                                                "model": "password",
-                                                "type": "password",
-                                                "label": "Jackett 密码",
-                                                "placeholder": "password",
-                                            },
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            "component": "VRow",
-                            "content": [
-                                {
-                                    "component": "VCol",
-                                    "content": [
-                                        {
-                                            "component": "VTextField",
-                                            "props": {
-                                                "model": "cron",
-                                                "label": "Cron",
-                                                "placeholder": "0 0 */24 * *",
-                                            },
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            "component": "VRow",
-                            "content": [
-                                {
-                                    "component": "VCol",
-                                    "content": [
-                                        {
-                                            "component": "VSwitch",
-                                            "props": {
-                                                "model": "run_once",
-                                                "label": "立即运行一次",
-                                            },
-                                        }
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                }
-            ],
-            {
-                "enabled": False,
-                "host": "",
-                "api_key": "",
-                "password": "",
-                "cron": "0 0 */24 * *",
-                "run_once": False,
-            },
-        )
-        
-  @staticmethod
     def __parse_torznabxml(url):
         """
         从torznab xml中解析种子信息
@@ -503,22 +301,3 @@ class Jackett(_PluginBase):
             pass
 
         return torrents
-        
-    def get_page(self) -> List[dict] | None:
-        pass
-
-    def stop_service(self):
-        """
-        退出插件
-        """
-        try:
-            if self._scheduler:
-                self._scheduler.remove_all_jobs()
-                if self._scheduler.running:
-                    self._event.set()
-                    self._scheduler.shutdown()
-                    self._event.clear()
-                self._scheduler = None
-        except Exception as e:
-            logger.error(f"停止插件错误: {str(e)}")
-            
